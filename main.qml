@@ -1,13 +1,9 @@
 import QtQuick
-import QtQuick.Window
 import QtMultimedia
 
-Window {
+Rectangle {
     id: root
-    visible: true
-    visibility: Window.FullScreen
     color: "black"
-    title: "Screensaver"
 
     property string currentTime: ""
     property string currentDate: ""
@@ -17,23 +13,13 @@ Window {
         source: fontSource
     }
 
-    MediaPlayer {
-        id: player
-        source: videoSource
-        videoOutput: bgVideo
-        loops: MediaPlayer.Infinite
-
-        audioOutput: AudioOutput {
-            muted: true
-            volume: 0.0
-        }
-
-        Component.onCompleted: play()
-    }
-
-    VideoOutput {
+    Video {
         id: bgVideo
         anchors.fill: parent
+        source: videoSource
+        autoPlay: true
+        loops: MediaPlayer.Infinite
+        muted: true
         fillMode: VideoOutput.PreserveAspectCrop
     }
 
@@ -47,7 +33,7 @@ Window {
             anchors.horizontalCenter: parent.horizontalCenter
             color: "white"
             font.family: pixelFont.status === FontLoader.Ready ? pixelFont.name : "monospace"
-            font.pixelSize: 100
+            font.pixelSize: 64
             horizontalAlignment: Text.AlignHCenter
             style: Text.Outline
             styleColor: "#000000"
@@ -106,8 +92,10 @@ Window {
         hoverEnabled: true
         cursorShape: Qt.BlankCursor
         onClicked: Qt.quit()
+        onPositionChanged: Qt.quit()
     }
 
+    focus: true
     Keys.onPressed: (event) => {
         Qt.quit()
     }
