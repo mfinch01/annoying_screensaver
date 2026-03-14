@@ -1,18 +1,12 @@
-import os
-os.environ["LC_NUMERIC"] = "C"
-
-import locale
-locale.setlocale(locale.LC_NUMERIC, "C")
-
 import sys
 import random
 from datetime import datetime
 
-from PySide6.QtCore import Qt, QTimer, QRect, QPoint
+from PySide6.QtCore import Qt, QTimer, QRect, QPoint, QUrl
 from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics
-from PySide6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
-
-import mpv
+from PySide6.QtWidgets import QApplication, QWidget, QLabel
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtMultimediaWidgets import QVideoWidget
 
 
 class MatrixOverlay(QWidget):
@@ -42,7 +36,6 @@ class MatrixOverlay(QWidget):
                 "speed": random.randint(8, 22),
                 "length": random.randint(8, 24),
             })
-
         super().resizeEvent(event)
 
     def tick(self):
@@ -59,7 +52,6 @@ class MatrixOverlay(QWidget):
         painter.setRenderHint(QPainter.TextAntialiasing, True)
         painter.setFont(self.font)
 
-        # Положение псевдо-терминала
         term_rect = QRect(
             int(self.width() * 0.58),
             int(self.height() * 0.10),
@@ -67,10 +59,8 @@ class MatrixOverlay(QWidget):
             int(self.height() * 0.58),
         )
 
-        # Фон окна терминала
         painter.fillRect(term_rect, QColor(0, 0, 0, 155))
 
-        # Заголовок окна
         title_h = 34
         painter.fillRect(
             term_rect.x(),
@@ -83,14 +73,11 @@ class MatrixOverlay(QWidget):
         painter.setPen(QColor(230, 230, 230))
         painter.drawText(term_rect.adjusted(70, 0, -10, 0), Qt.AlignVCenter, "gnome-terminal")
 
-        # Кнопки окна
         for i, color in enumerate([QColor("#ff5f56"), QColor("#ffbd2e"), QColor("#27c93f")]):
             painter.setBrush(color)
             painter.setPen(Qt.NoPen)
             painter.drawEllipse(QPoint(term_rect.x() + 18 + i * 18, term_rect.y() + 17), 5, 5)
 
-        # Матрица внутри терминала
-        painter.setFont(self.font)
         char_h = 18
         content_left = term_rect.x() + 10
         content_right = term_rect.right() - 10
@@ -124,14 +111,8 @@ class ClockOverlay(QWidget):
         self.time_label = QLabel(self)
         self.date_label = QLabel(self)
 
-        self.time_label.setStyleSheet("""
-            color: white;
-            background: transparent;
-        """)
-        self.date_label.setStyleSheet("""
-            color: rgba(255,255,255,220);
-            background: transparent;
-        """)
+        self.time_label.setStyleSheet("color: white; background: transparent;")
+        self.date_label.setStyleSheet("color: rgba(255,255,255,220); background: transparent;")
 
         self.time_label.setFont(QFont("Inter", 72, QFont.DemiBold))
         self.date_label.setFont(QFont("Inter", 26))
@@ -142,7 +123,6 @@ class ClockOverlay(QWidget):
         self.update_time()
 
     def resizeEvent(self, event):
-        # Положение часов
         self.time_label.setGeometry(70, self.height() - 180, 500, 90)
         self.date_label.setGeometry(74, self.height() - 105, 800, 40)
         super().resizeEvent(event)
@@ -153,47 +133,55 @@ class ClockOverlay(QWidget):
         self.date_label.setText(now.strftime("%A, %d %B %Y"))
 
 
-class VideoContainer(QWidget):
-    pass
-
-
 class MainWindow(QWidget):
     def __init__(self, video_path):
         super().__init__()
+        self.video_path = video_path
 
         self.setWindowTitle("Custom Python Screensaver")
         self.setWindowFlag(Qt.FramelessWindowHint, True)
         self.setCursor(Qt.BlankCursor)
         self.setStyleSheet("background: black;")
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        # Видео
+        self.video = QVideoWidget(self)
+        self.video.setGeometry(self.rect())
 
-        self.video = VideoContainer(self)
-        layout.addWidget(self.video)
+        self.player = QMediaPlayer(self)
+        self.audio = QAudioOutput(self)
+        self.audio.setVolume(0.0)
+        self.player.setAudioOutput(self.audio)
+        self.player.setVideoOutput(self.video)
+        self.player.setSource(QUrl.fromLocalFile(video_path))
 
+        # Оверлеи
         self.clock = ClockOverlay(self)
-        self.clock.raise_()
-
         self.matrix = MatrixOverlay(self)
-        self.matrix.raise_()
 
-        self.player = mpv.MPV(
-            wid=str(int(self.video.winId())),
-            input_default_bindings=False,
-            input_vo_keyboard=False,
-            osc=False,
-            loop_file="inf",
-            fs="yes",
-            keep_open="yes",
-            audio="no",
-        )
-
-        self.player.play(video_path)
         self.showFullScreen()
 
+        self.video.show()
+        self.clock.setGeometry(self.rect())
+        self.matrix.setGeometry(self.rect())
+        self.clock.raise_()
+        self.matrix.raise_()
+
+        self.player.mediaStatusChanged.connect(self.handle_media_status)
+        self.player.errorOccurred.connect(self.handle_error)
+
+        self.player.play()
+
+    def handle_media_status(self, status):
+        # Зацикливание
+        if status == QMediaPlayer.MediaStatus.EndOfMedia:
+            self.player.setPosition(0)
+            self.player.play()
+
+    def handle_error(self, error, error_string):
+        print("QMediaPlayer error:", error, error_string, flush=True)
+
     def resizeEvent(self, event):
+        self.video.setGeometry(self.rect())
         self.clock.setGeometry(self.rect())
         self.matrix.setGeometry(self.rect())
         super().resizeEvent(event)
@@ -207,13 +195,6 @@ class MainWindow(QWidget):
     def mousePressEvent(self, event):
         self.close()
 
-    def closeEvent(self, event):
-        try:
-            self.player.terminate()
-        except Exception:
-            pass
-        super().closeEvent(event)
-
 
 def main():
     if len(sys.argv) < 2:
@@ -221,10 +202,8 @@ def main():
         print("  python3 screensaver.py /полный/путь/к/видео.mp4")
         sys.exit(1)
 
-    video_path = sys.argv[1]
-
     app = QApplication(sys.argv)
-    window = MainWindow(video_path)
+    window = MainWindow(sys.argv[1])
     sys.exit(app.exec())
 
 
