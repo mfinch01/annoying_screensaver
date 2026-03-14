@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Screensaver</title>
+  <style>
+    :root {
+      --clock-left: 72px;
+      --clock-bottom: 120px;
+
+      --time-font: "Inter", "Ubuntu", sans-serif;
+      --date-font: "Inter", "Ubuntu", sans-serif;
+      --term-font: "JetBrains Mono", "Ubuntu Mono", monospace;
+
+      --time-size: 92px;
+      --date-size: 30px;
+
+      --term-top: 9%;
+      --term-right: 8%;
+      --term-width: 32vw;
+      --term-height: 58vh;
+
+      --term-bg: rgba(0, 0, 0, 0.58);
+      --term-title-bg: rgba(34, 34, 34, 0.92);
+
+      --term-green: #63ff8f;
+      --term-green-dim: rgba(99, 255, 143, 0.4);
+      --term-white: #eaffef;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+      font-family: sans-serif;
+      cursor: none;
+    }
+
+    #bg-video {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: 0;
+      background: black;
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #clock-wrap {
+      position: absolute;
+      left: var(--clock-left);
+      bottom: var(--clock-bottom);
+      color: white;
+      text-shadow:
+        0 2px 10px rgba(0,0,0,0.6),
+        0 0 28px rgba(0,0,0,0.25);
+    }
+
+    #time {
+      font-family: var(--time-font);
+      font-size: var(--time-size);
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    #date {
+      margin-top: 10px;
+      font-family: var(--date-font);
+      font-size: var(--date-size);
+      color: rgba(255,255,255,0.88);
+      line-height: 1.2;
+    }
+
+    #terminal {
+      position: absolute;
+      top: var(--term-top);
+      right: var(--term-right);
+      width: var(--term-width);
+      height: var(--term-height);
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--term-bg);
+      box-shadow:
+        0 24px 80px rgba(0, 0, 0, 0.45),
+        0 4px 20px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    #terminal-titlebar {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      background: var(--term-title-bg);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-family: var(--date-font);
+      color: rgba(255,255,255,0.86);
+      font-size: 14px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+    }
+
+    .dot.red { background: #ff5f56; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #27c93f; }
+
+    #terminal-title {
+      margin-left: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #terminal-body {
+      position: relative;
+      width: 100%;
+      height: calc(100% - 38px);
+      background:
+        linear-gradient(to bottom, rgba(255,255,255,0.015), rgba(255,255,255,0)),
+        transparent;
+    }
+
+    #matrix {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #term-overlay-text {
+      position: absolute;
+      left: 18px;
+      top: 16px;
+      z-index: 3;
+      font-family: var(--term-font);
+      font-size: 15px;
+      line-height: 1.45;
+      color: rgba(230,255,235,0.22);
+      white-space: pre;
+      text-shadow: 0 0 8px rgba(99,255,143,0.08);
+    }
+
+    #vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at center, transparent 45%, rgba(0,0,0,0.18) 100%);
+    }
+  </style>
+</head>
+<body>
+  <video id="bg-video" autoplay muted loop playsinline>
+    <source src="dog.mp4" type="video/mp4" />
+  </video>
+
+  <div id="vignette"></div>
+
+  <div id="overlay">
+    <div id="clock-wrap">
+      <div id="time">00:00</div>
+      <div id="date">...</div>
+    </div>
+
+    <div id="terminal">
+      <div id="terminal-titlebar">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+        <div id="terminal-title">finch@ubuntu: ~</div>
+      </div>
+      <div id="terminal-body">
+        <canvas id="matrix"></canvas>
+        <div id="term-overlay-text">finch@ubuntu:~$ ./dreams.sh
+loading ambient scene...
+clock sync: ok
+background loop: ok
+matrix stream: ok
+status: idle</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const timeEl = document.getElementById("time");
+    const dateEl = document.getElementById("date");
+    const canvas = document.getElementById("matrix");
+    const ctx = canvas.getContext("2d");
+    const video = document.getElementById("bg-video");
+
+    function updateClock() {
+      const now = new Date();
+
+      const time = now.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      const date = now.toLocaleDateString("ru-RU", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+
+      timeEl.textContent = time;
+      dateEl.textContent = date.charAt(0).toUpperCase() + date.slice(1);
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      setupMatrix();
+    }
+
+    const chars = "01アイウエオカキクケコサシスセソABCDEFGHIJKLMNOPQRSTUVWXYZ#$%&*+-=<>/\\";
+    let columns = [];
+    let fontSize = 16;
+    let colCount = 0;
+    let drops = [];
+
+    function setupMatrix() {
+      const rect = canvas.getBoundingClientRect();
+      colCount = Math.floor(rect.width / fontSize);
+      drops = Array.from({ length: colCount }, () => Math.random() * -100);
+      columns = Array.from({ length: colCount }, (_, i) => i * fontSize);
+    }
+
+    function drawMatrix() {
+      const rect = canvas.getBoundingClientRect();
+
+      ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+      ctx.fillRect(0, 0, rect.width, rect.height);
+
+      ctx.font = `${fontSize}px "JetBrains Mono", "Ubuntu Mono", monospace`;
+      ctx.textBaseline = "top";
+
+      for (let i = 0; i < columns.length; i++) {
+        const x = columns[i];
+        const y = drops[i] * fontSize;
+
+        const tailLength = 18 + Math.floor(Math.random() * 10);
+
+        for (let j = 0; j < tailLength; j++) {
+          const ch = chars[Math.floor(Math.random() * chars.length)];
+          const yy = y - j * fontSize;
+
+          if (yy < -fontSize || yy > rect.height + fontSize) continue;
+
+          if (j === 0) {
+            ctx.fillStyle = "rgba(234, 255, 239, 0.95)";
+          } else {
+            const alpha = Math.max(0.06, 0.8 - j * 0.045);
+            ctx.fillStyle = `rgba(99,255,143,${alpha})`;
+          }
+
+          ctx.fillText(ch, x, yy);
+        }
+
+        drops[i] += 0.55 + Math.random() * 0.65;
+
+        if (y - tailLength * fontSize > rect.height + 40) {
+          drops[i] = Math.random() * -25 - 5;
+        }
+      }
+
+      requestAnimationFrame(drawMatrix);
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+    requestAnimationFrame(drawMatrix);
+
+    // На случай если браузер блокирует autoplay
+    video.play().catch(() => {});
+
+    // Выход по Esc
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        window.close();
+      }
+    });
+  </script>
+</body>
+</html>
