@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Annoying Screensaver</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <video id="bg-video" autoplay muted loop playsinline>
+    <source src="dog.mp4" type="video/mp4" />
+  </video>
+
+  <div id="vignette"></div>
+
+  <div id="overlay">
+    <div id="clock-wrap">
+      <div id="time">00:00</div>
+      <div id="date">...</div>
+    </div>
+
+    <div id="terminal">
+      <div id="terminal-titlebar">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+        <div id="terminal-title">finch@finch-laptop:~</div>
+      </div>
+
+      <div id="terminal-body">
+        <canvas id="matrix"></canvas>
+        <div id="term-overlay-text">finch@finch-laptop:~$</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
