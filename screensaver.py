@@ -1,3 +1,9 @@
+import os
+os.environ["LC_NUMERIC"] = "C"
+
+import locale
+locale.setlocale(locale.LC_NUMERIC, "C")
+
 import sys
 import random
 from datetime import datetime
