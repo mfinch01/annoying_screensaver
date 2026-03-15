@@ -1,10 +1,13 @@
 #include <QGuiApplication>
 #include <QQmlContext>
+#include <QQmlEngine>
 #include <QQuickView>
 #include <QWindow>
 #include <QUrl>
 #include <QFontDatabase>
+#include <QCoreApplication>
 #include <QDebug>
+#include <QObject>
 
 #include "app_paths.h"
 #include "startup_options.h"
@@ -20,6 +23,10 @@ static QWindow* wrapParentWindow(WId id)
 
 int main(int argc, char *argv[])
 {
+#ifdef Q_OS_LINUX
+    qputenv("QT_MEDIA_BACKEND", "ffmpeg");
+#endif
+
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName("AnnoyingScreenSaver");
 
@@ -48,6 +55,13 @@ int main(int argc, char *argv[])
 
     QQuickView view;
 
+    QObject::connect(
+        view.engine(),
+        &QQmlEngine::quit,
+        &app,
+        &QCoreApplication::quit
+    );
+
     view.rootContext()->setContextProperty("videoSource", videoUrl);
     view.rootContext()->setContextProperty("fontSource", fontUrl);
 
@@ -58,14 +72,13 @@ int main(int argc, char *argv[])
     view.setSource(QUrl(qmlUrl));
 
     if (view.status() == QQuickView::Error) {
-        auto errors = view.errors();
+        const auto errors = view.errors();
         for (const auto &err : errors)
             qCritical().noquote() << err.toString();
         return 1;
     }
 
     if (options.mode == RunMode::EmbeddedPreview) {
-
         QWindow *parent = wrapParentWindow(options.parentId);
 
         if (!parent) {
@@ -75,7 +88,7 @@ int main(int argc, char *argv[])
 
         view.setParent(parent);
 
-        QRect geom = parent->geometry();
+        const QRect geom = parent->geometry();
 
         if (geom.width() > 0 && geom.height() > 0)
             view.setGeometry(0, 0, geom.width(), geom.height());
@@ -83,11 +96,8 @@ int main(int argc, char *argv[])
             view.resize(800, 600);
 
         view.show();
-
     } else {
-
         view.showFullScreen();
-
     }
 
     return app.exec();

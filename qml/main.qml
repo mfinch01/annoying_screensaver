@@ -95,13 +95,34 @@ Rectangle {
         onTriggered: updateDateTime()
         Component.onCompleted: updateDateTime()
     }
-
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.BlankCursor
+
+        property real lastX: -1
+        property real lastY: -1
+        property real threshold: 12
+
         onClicked: Qt.quit()
-        onPositionChanged: Qt.quit()
+
+        onPositionChanged: function(mouse) {
+            if (lastX < 0 || lastY < 0) {
+                lastX = mouse.x
+                lastY = mouse.y
+                return
+            }
+
+            const dx = mouse.x - lastX
+            const dy = mouse.y - lastY
+            if (dx * dx + dy * dy >= threshold * threshold) {
+                Qt.quit()
+                return
+            }
+
+            lastX = mouse.x
+            lastY = mouse.y
+        }
     }
 
     focus: true
