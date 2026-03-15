@@ -13,13 +13,22 @@ Rectangle {
         source: fontSource
     }
 
-    Video {
-        id: bgVideo
-        anchors.fill: parent
-        source: videoSource
-        autoPlay: true
-        loops: MediaPlayer.Infinite
+    AudioOutput {
+        id: audioOutput
         muted: true
+    }
+
+    MediaPlayer {
+        id: player
+        source: videoSource
+        loops: MediaPlayer.Infinite
+        audioOutput: audioOutput
+        videoOutput: videoOutput
+    }
+
+    VideoOutput {
+        id: videoOutput
+        anchors.fill: parent
         fillMode: VideoOutput.PreserveAspectCrop
     }
 
@@ -96,7 +105,12 @@ Rectangle {
     }
 
     focus: true
-    Keys.onPressed: (event) => {
+    Keys.onPressed: function(event) {
+        event.accepted = true
         Qt.quit()
+    }
+
+    Component.onCompleted: {
+        player.play()
     }
 }
