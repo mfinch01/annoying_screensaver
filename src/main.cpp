@@ -11,7 +11,6 @@
 
 #include "app_paths.h"
 #include "startup_options.h"
-#include "resource_utils.h"
 
 static QWindow* wrapParentWindow(WId id)
 {
@@ -23,10 +22,6 @@ static QWindow* wrapParentWindow(WId id)
 
 int main(int argc, char *argv[])
 {
-#ifdef Q_OS_LINUX
-    qputenv("QT_MEDIA_BACKEND", "ffmpeg");
-#endif
-
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName("AnnoyingScreenSaver");
 
@@ -38,20 +33,16 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    RuntimeFiles runtimeFiles;
+    const QString fontUrl = AppPaths::embeddedFont();
+    const QString qmlUrl = AppPaths::qmlMain();
 
-    QString videoFile = runtimeFiles.extractResource(
-        AppPaths::embeddedVideo(),
-        "dog.mp4"
-    );
+    const QString fontResourcePath = fontUrl.startsWith("qrc:")
+        ? QStringLiteral(":") + fontUrl.mid(4)
+        : fontUrl;
 
-    QString videoUrl = QUrl::fromLocalFile(videoFile).toString();
-    QString fontUrl = AppPaths::embeddedFont();
-    QString qmlUrl = AppPaths::qmlMain();
-
-    int fontId = QFontDatabase::addApplicationFont(":/assets/fonts/8bitoperator_jve.ttf");
+    const int fontId = QFontDatabase::addApplicationFont(fontResourcePath);
     if (fontId < 0)
-        qWarning() << "Failed to load embedded font";
+        qWarning() << "Failed to load embedded font:" << fontResourcePath;
 
     QQuickView view;
 
@@ -62,13 +53,11 @@ int main(int argc, char *argv[])
         &QCoreApplication::quit
     );
 
-    view.rootContext()->setContextProperty("videoSource", videoUrl);
     view.rootContext()->setContextProperty("fontSource", fontUrl);
 
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.setColor(Qt::black);
     view.setFlags(Qt::FramelessWindowHint);
-
     view.setSource(QUrl(qmlUrl));
 
     if (view.status() == QQuickView::Error) {

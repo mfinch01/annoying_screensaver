@@ -1,5 +1,4 @@
 import QtQuick
-import QtMultimedia
 
 Rectangle {
     id: root
@@ -8,28 +7,41 @@ Rectangle {
     property string currentTime: ""
     property string currentDate: ""
 
+    property int frameIndex: 0
+
+    property var frames: [
+        "qrc:/assets/frames/frame01.png",
+        "qrc:/assets/frames/frame02.png",
+        "qrc:/assets/frames/frame03.png",
+        "qrc:/assets/frames/frame04.png",
+        "qrc:/assets/frames/frame05.png",
+        "qrc:/assets/frames/frame06.png",
+        "qrc:/assets/frames/frame07.png",
+        "qrc:/assets/frames/frame08.png",
+        "qrc:/assets/frames/frame09.png",
+        "qrc:/assets/frames/frame10.png"
+    ]
+
     FontLoader {
         id: pixelFont
         source: fontSource
     }
 
-    AudioOutput {
-        id: audioOutput
-        muted: true
-    }
-
-    MediaPlayer {
-        id: player
-        source: videoSource
-        loops: MediaPlayer.Infinite
-        audioOutput: audioOutput
-        videoOutput: videoOutput
-    }
-
-    VideoOutput {
-        id: videoOutput
+    Image {
+        id: bg
         anchors.fill: parent
-        fillMode: VideoOutput.PreserveAspectCrop
+        source: frames[frameIndex]
+        fillMode: Image.PreserveAspectCrop
+    }
+
+    Timer {
+        interval: 500
+        running: true
+        repeat: true
+
+        onTriggered: {
+            frameIndex = (frameIndex + 1) % frames.length
+        }
     }
 
     Column {
@@ -71,13 +83,13 @@ Rectangle {
 
         function englishDate(d) {
             const weekdays = [
-                "Sunday", "Monday", "Tuesday", "Wednesday",
-                "Thursday", "Friday", "Saturday"
+                "Sunday","Monday","Tuesday","Wednesday",
+                "Thursday","Friday","Saturday"
             ]
             const months = [
-                "January", "February", "March", "April",
-                "May", "June", "July", "August",
-                "September", "October", "November", "December"
+                "January","February","March","April",
+                "May","June","July","August",
+                "September","October","November","December"
             ]
 
             return weekdays[d.getDay()] + ", "
@@ -95,6 +107,7 @@ Rectangle {
         onTriggered: updateDateTime()
         Component.onCompleted: updateDateTime()
     }
+
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
@@ -115,6 +128,7 @@ Rectangle {
 
             const dx = mouse.x - lastX
             const dy = mouse.y - lastY
+
             if (dx * dx + dy * dy >= threshold * threshold) {
                 Qt.quit()
                 return
@@ -126,12 +140,9 @@ Rectangle {
     }
 
     focus: true
+
     Keys.onPressed: function(event) {
         event.accepted = true
         Qt.quit()
-    }
-
-    Component.onCompleted: {
-        player.play()
     }
 }

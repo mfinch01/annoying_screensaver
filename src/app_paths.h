@@ -6,6 +6,5 @@ namespace AppPaths {
 
 QString qmlMain();
 QString embeddedFont();
-QString embeddedVideo();
 
 }

@@ -1,7 +1,17 @@
 <RCC>
     <qresource prefix="/">
         <file alias="qml/main.qml">../qml/main.qml</file>
-        <file alias="assets/dog.mp4">../assets/dog.mp4</file>
         <file alias="assets/fonts/8bitoperator_jve.ttf">../assets/fonts/8bitoperator_jve.ttf</file>
+
+        <file alias="assets/frames/frame01.png">../assets/frames/frame01.png</file>
+        <file alias="assets/frames/frame02.png">../assets/frames/frame02.png</file>
+        <file alias="assets/frames/frame03.png">../assets/frames/frame03.png</file>
+        <file alias="assets/frames/frame04.png">../assets/frames/frame04.png</file>
+        <file alias="assets/frames/frame05.png">../assets/frames/frame05.png</file>
+        <file alias="assets/frames/frame06.png">../assets/frames/frame06.png</file>
+        <file alias="assets/frames/frame07.png">../assets/frames/frame07.png</file>
+        <file alias="assets/frames/frame08.png">../assets/frames/frame08.png</file>
+        <file alias="assets/frames/frame09.png">../assets/frames/frame09.png</file>
+        <file alias="assets/frames/frame10.png">../assets/frames/frame10.png</file>
     </qresource>
 </RCC>

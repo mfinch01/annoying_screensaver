@@ -5,14 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Multimedia)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
 
 qt_standard_project_setup()
 
 qt_add_executable(AnnoyingScreenSaver
     src/main.cpp
     src/app_paths.cpp
-    src/resource_utils.cpp
     src/startup_options.cpp
     resources/resources.qrc
 )
@@ -24,7 +23,6 @@ target_link_libraries(AnnoyingScreenSaver PRIVATE
     Qt6::Gui
     Qt6::Qml
     Qt6::Quick
-    Qt6::Multimedia
 )
 
 if (WIN32)
